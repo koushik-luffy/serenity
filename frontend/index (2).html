@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serenity - Mental Health Triage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #eef5f2;
+  --panel: rgba(255, 255, 255, 0.76);
+  --border: rgba(26, 51, 56, 0.1);
+  --text: #14282b;
+  --muted: #5a7478;
+  --muted-soft: #8aa0a3;
+  --accent: #0f8b8d;
+  --accent-deep: #0d5e60;
+  --danger: #d64545;
+  --danger-soft: #fee8e4;
+  --success: #1e8d63;
+  --shadow: 0 24px 60px rgba(15, 51, 56, 0.12);
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-serif: "Fraunces", Georgia, serif;
+}
+
+html, body {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(15, 139, 141, 0.12), transparent 34%),
+    radial-gradient(circle at top right, rgba(242, 185, 93, 0.14), transparent 28%),
+    linear-gradient(180deg, #edf6f4 0%, #f7fbfa 100%);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+body { padding: 22px; }
+
+.shell {
+  max-width: 1500px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.topbar,
+.panel,
+.dashboard-shell {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 26px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.84), rgba(247,252,251,0.72));
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-mark {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #0f8b8d, #6dbdb6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  box-shadow: 0 14px 26px rgba(15, 139, 141, 0.24);
+}
+
+.brand-copy h1 {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.brand-copy p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-pill,
+.ghost-button,
+.primary-button,
+.quick-action,
+.icon-chip {
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border-color: rgba(15, 139, 141, 0.12);
+  background: rgba(255,255,255,0.76);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status-pill::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #c1d1d4;
+}
+
+.status-pill.online {
+  color: var(--accent-deep);
+  border-color: rgba(15, 139, 141, 0.18);
+  background: rgba(216, 241, 239, 0.92);
+}
+
+.status-pill.online::before {
+  background: var(--success);
+  box-shadow: 0 0 0 6px rgba(30, 141, 99, 0.12);
+}
+
+.ghost-button,
+.primary-button {
+  padding: 11px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ghost-button {
+  border-color: rgba(20, 40, 43, 0.1);
+  background: rgba(255,255,255,0.7);
+  color: var(--text);
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #0f8b8d, #157a7d);
+  color: white;
+  box-shadow: 0 14px 24px rgba(15, 139, 141, 0.22);
+}
+
+.ghost-button:hover,
+.primary-button:hover,
+.quick-action:hover,
+.icon-chip:hover { transform: translateY(-1px); }
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(330px, 0.85fr);
+  gap: 18px;
+}
+
+.chat-panel {
+  min-height: calc(100vh - 146px);
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 26px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-header h2,
+.insights-section h3,
+.dashboard-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.panel-header strong {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+.panel-header p {
+  margin-top: 10px;
+  max-width: 620px;
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.session-meta {
+  min-width: 220px;
+  display: grid;
+  gap: 12px;
+}
+
+.meta-card {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(20, 40, 43, 0.08);
+}
+
+.meta-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-soft);
+}
+
+.meta-value {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.banner {
+  margin: 18px 26px 0;
+  padding: 16px 18px;
+  display: none;
+  align-items: flex-start;
+  gap: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(214, 69, 69, 0.24);
+  background: linear-gradient(135deg, rgba(254, 232, 228, 0.96), rgba(255, 245, 242, 0.96));
+}
+
+.banner.visible { display: flex; }
+
+.banner-marker {
+  width: 12px;
+  height: 12px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--danger);
+  box-shadow: 0 0 0 7px rgba(214, 69, 69, 0.12);
+}
+
+.banner h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #7f2323;
+}
+
+.banner p {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #8f3b3b;
+}
+
+.messages {
+  padding: 22px 26px 26px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.messages::-webkit-scrollbar { width: 8px; }
+.messages::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(20, 40, 43, 0.12);
+}
+
+.message-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  animation: rise 0.28s ease;
+}
+
+.message-row.user { flex-direction: row-reverse; }
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.avatar.ai {
+  background: linear-gradient(135deg, rgba(15, 139, 141, 0.16), rgba(109, 189, 182, 0.4));
+  color: var(--accent-deep);
+}
+
+.avatar.user {
+  background: linear-gradient(135deg, rgba(242, 185, 93, 0.22), rgba(255,255,255,0.9));
+  color: #8a5f17;
+}
+
+.bubble-stack {
+  max-width: min(76%, 720px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.message-row.user .bubble-stack { align-items: flex-end; }
+
+.bubble {
+  padding: 14px 16px;
+  border-radius: 20px;
+  line-height: 1.65;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bubble.ai {
+  border: 1px solid rgba(20, 40, 43, 0.08);
+  background: rgba(255,255,255,0.82);
+  color: var(--text);
+  border-bottom-left-radius: 8px;
+}
+
+.bubble.user {
+  background: linear-gradient(135deg, #0f8b8d, #136b6d);
+  color: white;
+  border-bottom-right-radius: 8px;
+  box-shadow: 0 14px 24px rgba(15, 139, 141, 0.16);
+}
+
+.message-time { font-size: 11px; color: var(--muted-soft); }
+.message-row.user .message-time { text-align: right; }
+
+.notice-row { display: flex; justify-content: center; }
+
+.notice-chip {
+  padding: 9px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.78);
+  border: 1px solid rgba(20, 40, 43, 0.08);
+  color: var(--muted);
+}
+
+.notice-chip.high {
+  color: #8a2323;
+  background: rgba(254, 232, 228, 0.94);
+  border-color: rgba(214, 69, 69, 0.18);
+}
+
+.notice-chip.medium {
+  color: #8a6517;
+  background: rgba(255, 247, 226, 0.96);
+  border-color: rgba(242, 185, 93, 0.24);
+}
+
+.notice-chip.info {
+  color: var(--accent-deep);
+  background: rgba(216, 241, 239, 0.98);
+  border-color: rgba(15, 139, 141, 0.18);
+}
+
+.typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(20, 40, 43, 0.08);
+  background: rgba(255,255,255,0.82);
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(15, 139, 141, 0.5);
+  animation: blink 1s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.typing-dot:nth-child(3) { animation-delay: 0.36s; }
+
+.composer {
+  padding: 18px 26px 24px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(247,251,250,0.28), rgba(255,255,255,0.58));
+}
+
+.composer-box {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 24px;
+  border: 1px solid rgba(20, 40, 43, 0.08);
+  background: rgba(255,255,255,0.92);
+}
+
+.composer textarea {
+  width: 100%;
+  min-height: 54px;
+  max-height: 150px;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font: inherit;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.composer textarea::placeholder { color: var(--muted-soft); }
+
+.composer-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.icon-chip {
+  padding: 11px 14px;
+  border-radius: 16px;
+  border-color: rgba(20, 40, 43, 0.08);
+  background: rgba(247,251,250,0.96);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.insights-panel {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.insights-hero {
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(140deg, rgba(15, 139, 141, 0.96), rgba(18, 104, 107, 0.98));
+  color: white;
+  box-shadow: 0 18px 34px rgba(15, 139, 141, 0.2);
+}
+
+.hero-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+
+.hero-severity {
+  margin-top: 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hero-severity strong {
+  font-family: var(--font-serif);
+  font-size: 38px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.hero-score { text-align: right; }
+.hero-score span {
+  display: block;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.hero-score strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+}
+
+.hero-subtype {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.55;
+  opacity: 0.88;
+}
+
+.insights-section {
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(20, 40, 43, 0.08);
+  background: rgba(255,255,255,0.84);
+}
+
+.confidence-row { margin-top: 14px; }
+
+.confidence-bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(20, 40, 43, 0.08);
+  overflow: hidden;
+}
+
+.confidence-fill {
+  width: 50%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f2b95d, #1e8d63);
+}
+
+.confidence-copy {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.chips {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(216, 241, 239, 0.8);
+  color: var(--accent-deep);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chip.warning {
+  background: rgba(255, 247, 226, 0.96);
+  color: #8a6517;
+}
+
+.chip.danger {
+  background: rgba(254, 232, 228, 0.96);
+  color: #8a2323;
+}
+</style>
+<style>
+.quick-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quick-action {
+  padding: 14px;
+  text-align: left;
+  border-radius: var(--radius-md);
+  border-color: rgba(20, 40, 43, 0.08);
+  background: rgba(247,251,250,0.96);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.quick-action strong {
+  display: block;
+  font-size: 14px;
+}
+
+.quick-action span {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.quick-action.alert {
+  background: rgba(254, 232, 228, 0.96);
+  border-color: rgba(214, 69, 69, 0.18);
+}
+
+.memory-copy {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.dashboard-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(8, 23, 28, 0.42);
+  backdrop-filter: blur(10px);
+  z-index: 40;
+}
+
+.dashboard-overlay.open { display: flex; }
+
+.dashboard-shell {
+  width: min(1180px, 100%);
+  max-height: min(88vh, 980px);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(248, 252, 251, 0.96);
+  box-shadow: 0 36px 80px rgba(8, 23, 28, 0.3);
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border-bottom: 1px solid rgba(20, 40, 43, 0.08);
+}
+
+.dashboard-header strong {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.dashboard-body {
+  padding: 22px 24px 24px;
+  overflow-y: auto;
+  display: grid;
+  gap: 18px;
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dashboard-card,
+.table-card,
+.audit-card {
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(20, 40, 43, 0.08);
+  background: white;
+}
+
+.dashboard-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 36px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.dashboard-card p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 0.95fr;
+  gap: 18px;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.table-toolbar strong { font-size: 17px; }
+.table-toolbar span { color: var(--muted); font-size: 13px; }
+
+.table-wrap {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(20, 40, 43, 0.08);
+}
+
+.table-head,
+.table-row {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr 1.4fr 0.9fr;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.table-head {
+  background: rgba(237, 245, 242, 0.86);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.table-row {
+  font-size: 13px;
+  border-top: 1px solid rgba(20, 40, 43, 0.08);
+}
+
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.severity-badge.low { background: rgba(225, 246, 236, 0.98); color: #1c6d4d; }
+.severity-badge.medium { background: rgba(255, 247, 226, 0.98); color: #8a6517; }
+.severity-badge.high { background: rgba(254, 232, 228, 0.98); color: #8a2323; }
+
+.audit-list { display: grid; gap: 12px; }
+
+.audit-item {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(20, 40, 43, 0.08);
+  background: rgba(247,251,250,0.84);
+}
+
+.audit-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--muted-soft);
+}
+
+.audit-message {
+  margin-top: 10px;
+  line-height: 1.6;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.leaderboard-card {
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(20, 40, 43, 0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244, 250, 248, 0.94));
+  box-shadow: 0 12px 30px rgba(15, 51, 56, 0.08);
+}
+
+.leaderboard-card.high {
+  background: linear-gradient(180deg, rgba(254, 232, 228, 0.96), rgba(255,255,255,0.98));
+  border-color: rgba(214, 69, 69, 0.16);
+}
+
+.leaderboard-card.medium {
+  background: linear-gradient(180deg, rgba(255, 247, 226, 0.98), rgba(255,255,255,0.98));
+  border-color: rgba(242, 185, 93, 0.2);
+}
+
+.leaderboard-card.low {
+  background: linear-gradient(180deg, rgba(225, 246, 236, 0.98), rgba(255,255,255,0.98));
+  border-color: rgba(30, 141, 99, 0.16);
+}
+
+.leaderboard-rank {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+
+.leaderboard-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.leaderboard-copy {
+  margin-top: 16px;
+}
+
+.leaderboard-copy strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 18px;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.leaderboard-copy p {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.leaderboard-meta {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.leaderboard-grid-live {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 139, 141, 0.12);
+  background: rgba(216, 241, 239, 0.82);
+  color: var(--accent-deep);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.live-badge::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--success);
+  box-shadow: 0 0 0 0 rgba(30, 141, 99, 0.4);
+  animation: livePulse 1.8s ease-out infinite;
+}
+
+.leaderboard-score {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.table-row.leader {
+  background: rgba(216, 241, 239, 0.32);
+}
+
+.empty-state {
+  padding: 32px 18px;
+  text-align: center;
+  color: var(--muted-soft);
+  font-size: 13px;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink {
+  0%, 100% { transform: translateY(0); opacity: 0.45; }
+  50% { transform: translateY(-3px); opacity: 1; }
+}
+
+@keyframes livePulse {
+  0% { box-shadow: 0 0 0 0 rgba(30, 141, 99, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(30, 141, 99, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(30, 141, 99, 0); }
+}
+
+@media (max-width: 1200px) {
+  .workspace { grid-template-columns: 1fr; }
+  .chat-panel { min-height: auto; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .leaderboard-grid-live { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 860px) {
+  body { padding: 12px; }
+  .topbar, .panel-header, .composer, .insights-panel, .dashboard-header, .dashboard-body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .topbar { flex-direction: column; align-items: flex-start; }
+  .topbar-actions { width: 100%; justify-content: space-between; }
+  .panel-header { flex-direction: column; }
+  .session-meta { width: 100%; min-width: 0; }
+  .message-row .bubble-stack { max-width: 86%; }
+  .quick-grid, .dashboard-stats { grid-template-columns: 1fr; }
+  .table-head, .table-row { grid-template-columns: 1fr; }
+  .table-head { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">SR</div>
+      <div class="brand-copy">
+        <h1>Serenity</h1>
+        <p>Context-aware triage for crisis support, escalation, and counselor readiness.</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="status-pill" id="connection-pill">Checking backend</div>
+      <button class="ghost-button" type="button" onclick="toggleDashboard(true)">Open Counselor Dashboard</button>
+      <button class="primary-button" type="button" onclick="triggerEmergencyAction()">Emergency Protocol</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="panel chat-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Therapeutic Intake</h2>
+          <strong>A calmer first response for urgent moments.</strong>
+          <p>
+            This assistant captures context, screens for crisis signals, and routes the case to the right level of human attention without making the user repeat their story.
+          </p>
+        </div>
+        <div class="session-meta">
+          <div class="meta-card">
+            <div class="meta-label">Session Identity</div>
+            <div class="meta-value" id="session-id">Preparing secure session</div>
+          </div>
+          <div class="meta-card">
+            <div class="meta-label">Routing State</div>
+            <div class="meta-value" id="queue-position">Awaiting first message</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="banner" id="emergency-banner">
+        <div class="banner-marker"></div>
+        <div>
+          <h4 id="banner-title">High-risk situation detected</h4>
+          <p id="banner-copy">Emergency support guidance and counselor prioritization are active.</p>
+        </div>
+      </div>
+
+      <div class="messages" id="messages"></div>
+
+      <div class="composer">
+        <div class="composer-box">
+          <textarea id="chat-input" placeholder="Tell Serenity what is happening right now. Share as much or as little as you can." oninput="autoResize(this)" onkeydown="handleKeyDown(event)"></textarea>
+          <div class="composer-actions">
+            <button class="icon-chip" type="button" onclick="groundingPrompt()">Grounding</button>
+            <button class="primary-button" type="button" onclick="sendMessage()">Send</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel insights-panel">
+      <section class="insights-hero">
+        <div class="hero-label">Live Triage Snapshot</div>
+        <div class="hero-severity">
+          <strong id="severity-value">Awaiting</strong>
+          <div class="hero-score">
+            <span>Risk score</span>
+            <strong id="risk-score">--</strong>
+          </div>
+        </div>
+        <div class="hero-subtype" id="subtype-value">The model will populate severity, subtype, and indicators after the first message.</div>
+      </section>
+
+      <section class="insights-section">
+        <h3>Model Confidence</h3>
+        <div class="confidence-row">
+          <div class="confidence-bar">
+            <div class="confidence-fill" id="confidence-fill"></div>
+          </div>
+          <div class="confidence-copy">
+            <span>Lower certainty</span>
+            <span id="confidence-value">--</span>
+            <span>Higher certainty</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="insights-section">
+        <h3>Indicators</h3>
+        <div class="chips" id="indicator-chips">
+          <span class="chip">No indicators yet</span>
+        </div>
+      </section>
+
+      <section class="insights-section">
+        <h3>Support Actions</h3>
+        <div class="quick-grid" id="quick-grid">
+          <button class="quick-action" type="button" onclick="groundingPrompt()">
+            <strong>Start grounding</strong>
+            <span>Offer a short breathing and sensory reset sequence.</span>
+          </button>
+          <button class="quick-action" type="button" onclick="requestCounselorAction()">
+            <strong>Request counselor</strong>
+            <span>Show that the user has been prioritized for live support.</span>
+          </button>
+          <button class="quick-action" type="button" onclick="trustedContactAction()">
+            <strong>Trusted contact</strong>
+            <span>Explain the trusted-contact escalation pathway.</span>
+          </button>
+          <button class="quick-action alert" type="button" onclick="triggerEmergencyAction()">
+            <strong>Emergency protocol</strong>
+            <span>Emphasize immediate action for high-risk physical or mental crises.</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="insights-section">
+        <h3>Session Memory</h3>
+        <div class="memory-copy" id="memory-copy">
+          Prior-session context will appear here once this conversation has enough history to summarize.
+        </div>
+      </section>
+    </aside>
+  </main>
+</div>
+<div class="dashboard-overlay" id="dashboard-overlay">
+  <div class="dashboard-shell">
+    <div class="dashboard-header">
+      <div>
+        <h2 style="font-size:14px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Counselor View</h2>
+        <strong>Live severity leaderboard and audit stream.</strong>
+      </div>
+      <div class="topbar-actions">
+        <div class="live-badge" id="dashboard-live-badge">Waiting for queue data</div>
+        <button class="ghost-button" type="button" onclick="refreshDashboard()">Refresh</button>
+        <button class="ghost-button" type="button" onclick="toggleDashboard(false)">Close</button>
+      </div>
+    </div>
+    <div class="dashboard-body">
+      <div class="dashboard-stats">
+        <div class="dashboard-card">
+          <h3>Users in Queue</h3>
+          <strong id="stat-queue">0</strong>
+          <p>Active cases waiting for triage follow-up or counselor routing.</p>
+        </div>
+        <div class="dashboard-card">
+          <h3>High Priority</h3>
+          <strong id="stat-high">0</strong>
+          <p>Cases that need immediate attention because crisis confidence is elevated.</p>
+        </div>
+        <div class="dashboard-card">
+          <h3>Audit Entries</h3>
+          <strong id="stat-audit">0</strong>
+          <p>Logged interactions, triage decisions, and escalation events.</p>
+        </div>
+        <div class="dashboard-card">
+          <h3>Emergency Flags</h3>
+          <strong id="stat-emergency">0</strong>
+          <p>Safety-critical records that include physical or acute emergency indicators.</p>
+        </div>
+      </div>
+
+      <section class="table-card">
+        <div class="table-toolbar">
+          <div>
+            <strong>Live Leaderboard</strong>
+            <span>Automatically re-ranked in real time from severity, risk score, and waiting order.</span>
+          </div>
+          <span id="dashboard-updated">No updates yet</span>
+        </div>
+        <div class="leaderboard-grid-live" id="leaderboard-body">
+          <div class="empty-state">No live leaderboard entries yet.</div>
+        </div>
+      </section>
+
+      <div class="dashboard-grid">
+        <section class="table-card">
+          <div class="table-toolbar">
+            <div>
+              <strong>Priority Queue</strong>
+              <span>Highest risk score first, then severity, then recency.</span>
+            </div>
+            <span id="queue-summary">Waiting for queue data</span>
+          </div>
+          <div class="table-wrap">
+            <div class="table-head">
+              <span>User</span>
+              <span>Severity</span>
+              <span>Last message</span>
+              <span>Time</span>
+            </div>
+            <div id="queue-body">
+              <div class="empty-state">No queue entries yet.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="audit-card">
+          <div class="table-toolbar">
+            <div>
+              <strong>Audit Trail</strong>
+              <span>Most recent triage decisions and message records.</span>
+            </div>
+          </div>
+          <div class="audit-list" id="audit-body">
+            <div class="empty-state">No audit records yet.</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const BACKEND_URL = "http://localhost:8000";
+
+const state = {
+  userId: "user_" + Math.random().toString(36).slice(2, 10),
+  backendAvailable: false,
+  chatHistory: [],
+  sessionHistory: [],
+  priorSummary: null,
+  currentSeverity: "LOW",
+  dashboardTimer: null
+};
+
+const BACKEND_TO_UI_SEVERITY = {
+  low: "LOW",
+  medium: "MEDIUM",
+  high_crisis: "HIGH"
+};
+
+const SUBTYPE_LABELS = {
+  suicidal_ideation: "Suicidal ideation",
+  self_harm: "Self-harm risk",
+  panic_anxiety: "Panic and anxiety",
+  depression_hopelessness: "Depression and hopelessness",
+  abuse_violence: "Abuse or violence",
+  substance_overdose: "Substance overdose",
+  accident_injury: "Accident or injury",
+  general_distress: "General distress"
+};
+
+const FALLBACK_RESPONSES = {
+  LOW: [
+    "Thank you for sharing that. I am here with you, and we can take this one step at a time. What feels most difficult today?",
+    "That sounds draining, and it makes sense that you would want support. What has been weighing on you the most?"
+  ],
+  MEDIUM: [
+    "This sounds heavy and overwhelming. You do not have to solve everything right now. Can you tell me what has made today feel especially hard?",
+    "I hear a lot of distress in what you are describing. Let us slow the moment down together. What is happening around you right now?"
+  ],
+  HIGH: [
+    "I am really glad you said that out loud. Your safety matters right now, and I want to stay focused on the next few minutes with you.",
+    "Thank you for trusting me with something so painful. A high-priority route is active, and I want to keep you talking while support is being escalated."
+  ]
+};
+
+const FALLBACK_KEYWORDS = {
+  HIGH: ["kill myself", "want to die", "suicide", "hurt myself", "overdose", "car crash", "collapsed"],
+  MEDIUM: ["panic", "heart racing", "hopeless", "worthless", "empty", "overwhelmed"],
+  LOW: ["stressed", "sad", "worried", "tired", "burnout", "cannot sleep"]
+};
+
+function escapeHtml(text) {
+  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function nowLabel() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function normalizeSeverity(value) {
+  if (!value) return "LOW";
+  const lower = String(value).toLowerCase();
+  return BACKEND_TO_UI_SEVERITY[lower] || String(value).toUpperCase();
+}
+
+function severityClass(severity) {
+  return severity.toLowerCase();
+}
+
+function isMedicalSubtype(subtype) {
+  return subtype === "accident_injury" || subtype === "substance_overdose";
+}
+
+function getPriorityScore(item) {
+  if (typeof item.risk_score === "number" && Number.isFinite(item.risk_score)) {
+    return Math.max(0, Math.min(100, item.risk_score));
+  }
+
+  const severity = normalizeSeverity(item.severity);
+  if (severity === "HIGH") return 90;
+  if (severity === "MEDIUM") return 58;
+  return 22;
+}
+
+function sortQueue(queue) {
+  return (queue || []).map((item) => ({
+    ...item,
+    uiSeverity: normalizeSeverity(item.severity),
+    priorityScore: getPriorityScore(item)
+  })).sort((a, b) => {
+    if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
+    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+  });
+}
+
+function formatRelativeTime(timestamp) {
+  const time = new Date(timestamp).getTime();
+  if (Number.isNaN(time)) return "--";
+
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+  if (diffSeconds < 10) return "Just now";
+  if (diffSeconds < 60) return `${diffSeconds}s ago`;
+
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  return `${Math.floor(diffHours / 24)}d ago`;
+}
+
+function autoResize(element) {
+  element.style.height = "auto";
+  element.style.height = Math.min(element.scrollHeight, 150) + "px";
+}
+
+function scrollMessages() {
+  const container = document.getElementById("messages");
+  container.scrollTop = container.scrollHeight;
+}
+
+function addNotice(text, kind = "info") {
+  const container = document.getElementById("messages");
+  const row = document.createElement("div");
+  row.className = "notice-row";
+  row.innerHTML = `<div class="notice-chip ${kind}">${escapeHtml(text)}</div>`;
+  container.appendChild(row);
+  scrollMessages();
+}
+
+function addUserMessage(text) {
+  const container = document.getElementById("messages");
+  const row = document.createElement("div");
+  row.className = "message-row user";
+  row.innerHTML = `
+    <div class="avatar user">YOU</div>
+    <div class="bubble-stack">
+      <div class="bubble user">${escapeHtml(text)}</div>
+      <div class="message-time">${nowLabel()}</div>
+    </div>
+  `;
+  container.appendChild(row);
+  state.chatHistory.push({ role: "user", content: text });
+  scrollMessages();
+}
+
+function addAiMessage(text) {
+  removeTyping();
+  const container = document.getElementById("messages");
+  const row = document.createElement("div");
+  row.className = "message-row";
+  row.innerHTML = `
+    <div class="avatar ai">AI</div>
+    <div class="bubble-stack">
+      <div class="bubble ai">${escapeHtml(text)}</div>
+      <div class="message-time">${nowLabel()}</div>
+    </div>
+  `;
+  container.appendChild(row);
+  state.chatHistory.push({ role: "assistant", content: text });
+  scrollMessages();
+}
+
+function showTyping() {
+  removeTyping();
+  const container = document.getElementById("messages");
+  const row = document.createElement("div");
+  row.className = "message-row";
+  row.id = "typing-row";
+  row.innerHTML = `
+    <div class="avatar ai">AI</div>
+    <div class="typing">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  container.appendChild(row);
+  scrollMessages();
+}
+
+function removeTyping() {
+  const row = document.getElementById("typing-row");
+  if (row) row.remove();
+}
+
+function setConnection(online) {
+  const pill = document.getElementById("connection-pill");
+  if (online) {
+    pill.classList.add("online");
+    pill.textContent = "Backend connected";
+  } else {
+    pill.classList.remove("online");
+    pill.textContent = "Local fallback mode";
+  }
+}
+
+function updateQueuePosition(severity) {
+  const el = document.getElementById("queue-position");
+  if (severity === "HIGH") el.textContent = "Position 1 - immediate review";
+  else if (severity === "MEDIUM") el.textContent = "Position 3 - fast follow-up";
+  else el.textContent = "Position 7 - routine support";
+}
+
+function updateQueuePositionFromQueue(queue) {
+  const el = document.getElementById("queue-position");
+  const ranked = sortQueue(queue);
+  const myIndex = ranked.findIndex((entry) => entry.user_id === state.userId);
+
+  if (myIndex === -1) return;
+
+  const mine = ranked[myIndex];
+  const label = myIndex === 0 ? "Next for counselor review" : `Position ${myIndex + 1} in live queue`;
+  el.textContent = `${label} - ${mine.uiSeverity} priority (${Math.round(mine.priorityScore)}/100 risk)`;
+}
+
+function updateBanner(visible, title, copy) {
+  const banner = document.getElementById("emergency-banner");
+  if (!visible) {
+    banner.classList.remove("visible");
+    return;
+  }
+  document.getElementById("banner-title").textContent = title;
+  document.getElementById("banner-copy").textContent = copy;
+  banner.classList.add("visible");
+}
+
+function buildIndicators(result) {
+  const indicators = [];
+  if (result.subtype && SUBTYPE_LABELS[result.subtype]) indicators.push(SUBTYPE_LABELS[result.subtype]);
+  (result.top_indicators || []).forEach((item) => {
+    if (!indicators.includes(item)) indicators.push(item);
+  });
+  return indicators.slice(0, 5);
+}
+
+function updateInsights(result) {
+  const uiSeverity = normalizeSeverity(result.severity);
+  const subtypeLabel = SUBTYPE_LABELS[result.subtype] || "General support";
+  const riskScore = result.risk_score != null ? Math.round(result.risk_score) : "--";
+  const confidence = result.confidence != null ? Math.max(0, Math.min(result.confidence, 1)) : 0.5;
+  const indicators = buildIndicators(result);
+
+  state.currentSeverity = uiSeverity;
+  document.getElementById("severity-value").textContent = uiSeverity;
+  document.getElementById("risk-score").textContent = riskScore === "--" ? "--" : riskScore + "/100";
+  document.getElementById("subtype-value").textContent = subtypeLabel;
+  document.getElementById("confidence-fill").style.width = Math.round(confidence * 100) + "%";
+  document.getElementById("confidence-value").textContent = Math.round(confidence * 100) + "%";
+  document.getElementById("session-id").textContent = state.userId;
+  updateQueuePosition(uiSeverity);
+
+  const chips = document.getElementById("indicator-chips");
+  if (!indicators.length) {
+    chips.innerHTML = '<span class="chip">No indicators yet</span>';
+  } else {
+    chips.innerHTML = indicators.map((indicator) => {
+      const chipClass = uiSeverity === "HIGH" ? "chip danger" : uiSeverity === "MEDIUM" ? "chip warning" : "chip";
+      return `<span class="${chipClass}">${escapeHtml(indicator)}</span>`;
+    }).join("");
+  }
+
+  document.getElementById("memory-copy").textContent = state.priorSummary
+    ? state.priorSummary
+    : "Prior-session context will appear here once this conversation has enough history to summarize.";
+
+  if (uiSeverity === "HIGH" || result.emergency_flag) {
+    const copy = isMedicalSubtype(result.subtype)
+      ? "Physical danger indicators were detected. Immediate emergency attention should be considered."
+      : "This conversation includes crisis signals. The case should be prioritized for counselor review right away.";
+    updateBanner(true, "High-risk escalation is active", copy);
+  } else {
+    updateBanner(false, "", "");
+  }
+}
+
+function buildSupportCopy(result) {
+  const subtype = result.subtype || "general_distress";
+  const responses = {
+    suicidal_ideation: [
+      "I am really glad you told me this. Let us focus on staying safe in the next few minutes. Move away from anything you could use to hurt yourself if you can.",
+      "Thank you for saying that clearly. You do not need to carry this alone right now. Stay with me while the high-priority pathway stays active."
+    ],
+    self_harm: [
+      "Thank you for being honest. The goal right now is to create even a small layer of safety. Please place any sharp or dangerous object farther away from you if possible.",
+      "I hear that you are at risk of hurting yourself. We do not need to solve everything right now. We only need to make this moment safer."
+    ],
+    panic_anxiety: [
+      "This sounds like a strong panic response. Try one breath in for 4, hold for 4, and out for 6. Then name five things you can see around you.",
+      "Your body may be sounding an alarm right now. Let us anchor you in the room: feel your feet against the floor and tell me one thing you can physically touch."
+    ],
+    depression_hopelessness: [
+      "What you are describing sounds deeply heavy. You do not have to fix the whole future right now. Tell me what feels hardest about this moment.",
+      "Hopelessness can make everything feel final. I am here with you in the present. What happened today that pushed things lower?"
+    ],
+    abuse_violence: [
+      "Your safety comes first. If someone is hurting you or nearby, move to the safest place you can and contact emergency help immediately.",
+      "Thank you for sharing this. Violence and abuse are urgent safety issues. Focus first on getting to a safer place if that is possible."
+    ],
+    substance_overdose: [
+      "This sounds like an overdose emergency. Call emergency services immediately or get someone nearby to call right now.",
+      "Overdose signs need urgent medical attention. Do not wait. Contact emergency support immediately."
+    ],
+    accident_injury: [
+      "This sounds like a physical emergency. Call emergency services now and stay with the injured person if it is safe to do so.",
+      "Accident and injury situations need immediate medical support. Please contact emergency services right away."
+    ],
+    general_distress: [
+      "Thank you for saying that out loud. I am here with you. What feels most difficult right now?",
+      "It makes sense that you would want support with this. Let us take it one step at a time. What happened just before you decided to message?"
+    ]
+  };
+  const options = responses[subtype] || FALLBACK_RESPONSES[normalizeSeverity(result.severity)] || FALLBACK_RESPONSES.LOW;
+  return options[Math.floor(Math.random() * options.length)];
+}
+
+function addSessionRecord(result) {
+  const record = {
+    session_id: `${state.userId}-${state.sessionHistory.length + 1}`,
+    final_severity: result.severity,
+    subtype: result.subtype,
+    emergency_flag: !!result.emergency_flag,
+    days_ago: 0,
+    notes: (result.top_indicators || []).join(", ")
+  };
+  state.sessionHistory = [...state.sessionHistory.slice(-9), record];
+}
+
+async function refreshPriorSummary() {
+  if (!state.backendAvailable || state.sessionHistory.length === 0) return;
+  const response = await fetch(`${BACKEND_URL}/triage/summarize-history`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessions: state.sessionHistory })
+  });
+  if (!response.ok) return;
+  const data = await response.json();
+  state.priorSummary = data.prior_summary || null;
+}
+
+async function analyzeWithBackend() {
+  const recentMessages = state.chatHistory.slice(-8).map((message) => ({
+    role: message.role,
+    content: message.content
+  }));
+
+  const response = await fetch(`${BACKEND_URL}/triage/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      session_id: state.userId,
+      recent_messages: recentMessages,
+      prior_summary: state.priorSummary
+    })
+  });
+
+  if (!response.ok) throw new Error("Triage analyze failed");
+  const result = await response.json();
+  addSessionRecord(result);
+  await refreshPriorSummary();
+  return result;
+}
+
+function analyzeLocally(text) {
+  const lower = text.toLowerCase();
+  let severity = "LOW";
+  let subtype = "general_distress";
+  let emergencyFlag = false;
+  const indicators = [];
+
+  if (FALLBACK_KEYWORDS.HIGH.some((term) => lower.includes(term))) {
+    severity = "HIGH";
+    subtype = lower.includes("overdose") ? "substance_overdose" :
+      lower.includes("car crash") || lower.includes("collapsed") ? "accident_injury" :
+      lower.includes("hurt myself") ? "self_harm" :
+      "suicidal_ideation";
+  } else if (FALLBACK_KEYWORDS.MEDIUM.some((term) => lower.includes(term))) {
+    severity = "MEDIUM";
+    subtype = lower.includes("panic") || lower.includes("heart racing") ? "panic_anxiety" : "depression_hopelessness";
+  }
+
+  if (subtype === "substance_overdose" || subtype === "accident_injury") emergencyFlag = true;
+
+  Object.keys(FALLBACK_KEYWORDS).forEach((bucket) => {
+    FALLBACK_KEYWORDS[bucket].forEach((keyword) => {
+      if (lower.includes(keyword) && indicators.length < 4) indicators.push(keyword);
+    });
+  });
+
+  return {
+    severity,
+    subtype,
+    emergency_flag: emergencyFlag,
+    risk_score: severity === "HIGH" ? 89 : severity === "MEDIUM" ? 58 : 22,
+    confidence: severity === "HIGH" ? 0.84 : severity === "MEDIUM" ? 0.67 : 0.52,
+    top_indicators: indicators,
+    safe_fail_escalated: false
+  };
+}
+
+function handleResult(result) {
+  const uiSeverity = normalizeSeverity(result.severity);
+  updateInsights(result);
+  addNotice(`${uiSeverity} severity - ${SUBTYPE_LABELS[result.subtype] || "General distress"}`, uiSeverity === "HIGH" ? "high" : uiSeverity === "MEDIUM" ? "medium" : "info");
+  if (result.safe_fail_escalated) addNotice("Safe-fail escalation applied because the model favored a safer route.", "high");
+  if (result.emergency_flag) addNotice("Emergency indicators detected. This case needs immediate attention.", "high");
+  addAiMessage(buildSupportCopy(result));
+}
+
+async function sendMessage() {
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = "";
+  autoResize(input);
+  addUserMessage(text);
+  showTyping();
+
+  try {
+    const result = state.backendAvailable ? await analyzeWithBackend() : analyzeLocally(text);
+    handleResult(result);
+    if (document.getElementById("dashboard-overlay").classList.contains("open")) {
+      refreshDashboard();
+    }
+  } catch (error) {
+    const fallback = analyzeLocally(text);
+    state.backendAvailable = false;
+    setConnection(false);
+    handleResult(fallback);
+  }
+}
+
+function renderQueue(queue) {
+  const target = document.getElementById("queue-body");
+  const normalized = sortQueue(queue);
+  const averageRisk = normalized.length
+    ? Math.round(normalized.reduce((total, item) => total + item.priorityScore, 0) / normalized.length)
+    : 0;
+
+  document.getElementById("stat-queue").textContent = normalized.length;
+  document.getElementById("stat-high").textContent = normalized.filter((item) => item.uiSeverity === "HIGH").length;
+  document.getElementById("stat-emergency").textContent = normalized.filter((item) => item.emergency_flag).length;
+  document.getElementById("queue-summary").textContent = normalized.length
+    ? `${normalized[0].uiSeverity} leads with ${Math.round(normalized[0].priorityScore)}/100 risk · Avg ${averageRisk}/100`
+    : "Waiting for queue data";
+  document.getElementById("dashboard-live-badge").textContent = state.backendAvailable ? "Live queue active" : "Demo queue active";
+  document.getElementById("dashboard-updated").textContent = `Updated ${nowLabel()}`;
+  updateQueuePositionFromQueue(normalized);
+
+  if (!normalized.length) {
+    target.innerHTML = '<div class="empty-state">No queue entries yet.</div>';
+    return;
+  }
+
+  target.innerHTML = normalized.map((item, index) => `
+    <div class="table-row ${index === 0 ? "leader" : ""}">
+      <span><strong>${escapeHtml(item.user_id)}</strong></span>
+      <span><span class="severity-badge ${severityClass(item.uiSeverity)}">${item.uiSeverity}</span></span>
+      <span>${escapeHtml(item.last_message || SUBTYPE_LABELS[item.subtype] || "Awaiting context")}</span>
+      <span>${formatRelativeTime(item.timestamp)}</span>
+    </div>
+  `).join("");
+}
+
+function renderLeaderboard(queue) {
+  const target = document.getElementById("leaderboard-body");
+  const ranked = sortQueue(queue);
+
+  if (!ranked.length) {
+    target.innerHTML = '<div class="empty-state">No live leaderboard entries yet.</div>';
+    return;
+  }
+
+  target.innerHTML = ranked.slice(0, 3).map((item, index) => `
+    <article class="leaderboard-card ${severityClass(item.uiSeverity)}">
+      <div class="leaderboard-top">
+        <div class="leaderboard-rank">#${index + 1}</div>
+        <div class="leaderboard-score">${Math.round(item.priorityScore)}/100 risk</div>
+      </div>
+      <div class="leaderboard-copy">
+        <span class="severity-badge ${severityClass(item.uiSeverity)}">${item.uiSeverity}</span>
+        <strong>${escapeHtml(item.user_id)}</strong>
+        <p>${escapeHtml(item.last_message || SUBTYPE_LABELS[item.subtype] || "Awaiting context")}</p>
+      </div>
+      <div class="leaderboard-meta">
+        <span>${item.emergency_flag ? "Emergency flagged" : "Severity-ranked"}</span>
+        <span>${formatRelativeTime(item.timestamp)}</span>
+      </div>
+    </article>
+  `).join("");
+}
+
+function renderAudit(audit) {
+  const target = document.getElementById("audit-body");
+  const normalized = audit || [];
+  document.getElementById("stat-audit").textContent = normalized.length;
+
+  if (!normalized.length) {
+    target.innerHTML = '<div class="empty-state">No audit records yet.</div>';
+    return;
+  }
+
+  target.innerHTML = normalized.slice().reverse().slice(0, 10).map((entry) => {
+    const uiSeverity = normalizeSeverity(entry.severity);
+    return `
+      <div class="audit-item">
+        <div class="audit-meta">
+          <span><strong>${escapeHtml(entry.user_id)}</strong></span>
+          <span>${new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+        </div>
+        <div class="audit-message">
+          <span class="severity-badge ${severityClass(uiSeverity)}">${uiSeverity}</span>
+          <span style="margin-left:10px;">${escapeHtml(entry.message || SUBTYPE_LABELS[entry.subtype] || "Triage update")}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderDashboardFallback() {
+  const demoQueue = [
+    { user_id: "user_alpha1", severity: "high_crisis", risk_score: 94, last_message: "I cannot do this anymore", timestamp: new Date().toISOString(), emergency_flag: false },
+    { user_id: "user_beta22", severity: "medium", risk_score: 63, last_message: "My chest feels tight and I am panicking", timestamp: new Date(Date.now() - 180000).toISOString(), emergency_flag: false },
+    { user_id: "user_gamma", severity: "low", risk_score: 24, last_message: "I am stressed and burnt out", timestamp: new Date(Date.now() - 660000).toISOString(), emergency_flag: false }
+  ];
+  const demoAudit = [
+    { user_id: "user_alpha1", severity: "high_crisis", message: "I cannot do this anymore", timestamp: new Date().toISOString() },
+    { user_id: "user_beta22", severity: "medium", message: "My chest feels tight and I am panicking", timestamp: new Date(Date.now() - 180000).toISOString() },
+    { user_id: "user_gamma", severity: "low", message: "I am stressed and burnt out", timestamp: new Date(Date.now() - 660000).toISOString() }
+  ];
+  renderLeaderboard(demoQueue);
+  renderQueue(demoQueue);
+  renderAudit(demoAudit);
+}
+
+async function refreshDashboard() {
+  if (!state.backendAvailable) {
+    renderDashboardFallback();
+    return;
+  }
+
+  try {
+    const [queueResponse, auditResponse] = await Promise.all([
+      fetch(`${BACKEND_URL}/api/queue`),
+      fetch(`${BACKEND_URL}/api/audit`)
+    ]);
+
+    if (!queueResponse.ok || !auditResponse.ok) throw new Error("dashboard fetch failed");
+
+    const queueData = await queueResponse.json();
+    const auditData = await auditResponse.json();
+    renderLeaderboard(queueData.queue || []);
+    renderQueue(queueData.queue || []);
+    renderAudit(auditData.audit || []);
+  } catch (error) {
+    renderDashboardFallback();
+  }
+}
+
+function toggleDashboard(open) {
+  const overlay = document.getElementById("dashboard-overlay");
+  overlay.classList.toggle("open", open);
+  if (open) {
+    refreshDashboard();
+    if (state.dashboardTimer) clearInterval(state.dashboardTimer);
+    state.dashboardTimer = setInterval(refreshDashboard, 4000);
+  } else if (state.dashboardTimer) {
+    clearInterval(state.dashboardTimer);
+    state.dashboardTimer = null;
+  }
+}
+
+function handleKeyDown(event) {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+function groundingPrompt() {
+  addNotice("Try a grounding reset: 5 things you can see, 4 you can feel, 3 you can hear, 2 you can smell, 1 you can taste.", "info");
+}
+
+function requestCounselorAction() {
+  addNotice("Counselor support has been emphasized in the routing view.", "medium");
+}
+
+function trustedContactAction() {
+  addNotice("Trusted-contact escalation is available for high-risk sessions when the consent flow allows it.", "info");
+}
+
+function triggerEmergencyAction() {
+  updateBanner(true, "Emergency protocol suggested", "If there is immediate danger, contact emergency services or a trusted person right now.");
+  addNotice("Emergency protocol guidance has been surfaced to the user.", "high");
+}
+
+async function initializeApp() {
+  document.getElementById("session-id").textContent = state.userId;
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/health`);
+    state.backendAvailable = response.ok;
+  } catch (error) {
+    state.backendAvailable = false;
+  }
+
+  setConnection(state.backendAvailable);
+  addAiMessage("Hello, I am Serenity. This is a calm space to tell me what is happening. I will listen, assess urgency, and help route support.");
+}
+
+window.addEventListener("click", (event) => {
+  const overlay = document.getElementById("dashboard-overlay");
+  if (event.target === overlay) toggleDashboard(false);
+});
+
+initializeApp();
+</script>
+</body>
+</html>
