@@ -54,6 +54,20 @@ class HeuristicFallbackBackend:
             severity = "high_crisis"
             subtype = "suicidal_ideation"
             confidence = 0.9
+        if any(
+            term in combined
+            for term in [
+                "better off without me",
+                "wish i could disappear",
+                "if i didn't wake up",
+                "if i don't wake up",
+                "running out of reasons to stay",
+                "point in waking up",
+            ]
+        ):
+            severity = "high_crisis"
+            subtype = "suicidal_ideation"
+            confidence = max(confidence, 0.86)
         if any(term in combined for term in ["cut myself", "self harm", "hurt myself"]):
             severity = "high_crisis"
             subtype = "self_harm"
@@ -62,6 +76,27 @@ class HeuristicFallbackBackend:
             severity = "high_crisis"
             subtype = "substance_overdose"
             confidence = 0.9
+            emergency = True
+        if any(
+            term in combined
+            for term in [
+                "kill him",
+                "kill her",
+                "kill them",
+                "kill someone",
+                "hurt someone",
+                "kidnap",
+                "make him disappear",
+                "make her disappear",
+                "make someone disappear",
+                "snap and hurt",
+                "lose control and hurt",
+                "can't trust myself around",
+            ]
+        ):
+            severity = "high_crisis"
+            subtype = "abuse_violence"
+            confidence = 0.91
             emergency = True
         if any(term in combined for term in ["car crash", "accident", "collapsed", "can't breathe"]):
             severity = "high_crisis"
@@ -83,8 +118,8 @@ class TransformerBackend:
     def __init__(self, encoder_name: str, weights_path: str) -> None:
         if AutoTokenizer is None:
             raise RuntimeError("transformers is not installed")
-        self.tokenizer = AutoTokenizer.from_pretrained(encoder_name)
-        self.model = HierarchicalTriageModel(encoder_name=encoder_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(encoder_name, use_fast=False, local_files_only=True)
+        self.model = HierarchicalTriageModel(encoder_name=encoder_name, local_files_only=True)
         state = torch.load(weights_path, map_location="cpu")
         self.model.load_state_dict(state)
         self.model.eval()

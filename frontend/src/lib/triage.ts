@@ -49,6 +49,16 @@ export type AnalyzeResponse = {
   };
 };
 
+export type ChatResponse = {
+  session_id: string;
+  user_id: string;
+  reply: string;
+  model: string;
+  audio_wav_base64: string | null;
+  fallback_used: boolean;
+  notice: string | null;
+};
+
 export type QueueEntry = {
   session_id: string;
   user_id: string;

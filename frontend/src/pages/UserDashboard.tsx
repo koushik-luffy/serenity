@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -6,21 +6,25 @@ import {
   HeartHandshake,
   LoaderCircle,
   MessageSquareText,
+  Mic,
   RefreshCw,
   SendHorizonal,
   ShieldAlert,
   Sparkles,
+  Square,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 
 import {
   AnalyzeResponse,
+  ChatResponse,
   ChatMessage,
   ContactDraft,
   EmergencyContact,
   SessionRecord,
   USER_ID,
   SESSION_ID,
-  buildAssistantReply,
   classForSeverity,
   fetchJson,
   formatTime,
@@ -30,6 +34,23 @@ import {
   severityLabels,
   subtypeLabels,
 } from "@/lib/triage";
+
+type BrowserSpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => BrowserSpeechRecognition;
+    webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+  }
+}
 
 export default function UserDashboard() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
@@ -43,6 +64,12 @@ export default function UserDashboard() {
   const [contactDraft, setContactDraft] = useState<ContactDraft>(initialContactDraft);
   const [contactSaving, setContactSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chatNotice, setChatNotice] = useState<string | null>(null);
+  const [modelLabel, setModelLabel] = useState("gemini-2.5-flash");
+  const [isListening, setIsListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const signalCopy = useMemo(() => {
     if (!analysis) return "No live triage result yet";
@@ -69,6 +96,32 @@ export default function UserDashboard() {
     refreshContactsAndHealth();
   }, []);
 
+  useEffect(() => {
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript ?? "")
+        .join(" ")
+        .trim();
+      if (transcript) {
+        setInput((current) => (current ? `${current} ${transcript}`.trim() : transcript));
+      }
+    };
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.stop();
+      recognitionRef.current = null;
+    };
+  }, []);
+
   async function refreshPriorSummary(nextHistory: SessionRecord[]) {
     if (!nextHistory.length) {
       setPriorSummary(null);
@@ -80,6 +133,31 @@ export default function UserDashboard() {
       body: JSON.stringify({ sessions: nextHistory }),
     });
     setPriorSummary(summary.prior_summary);
+  }
+
+  function toggleListening() {
+    if (!recognitionRef.current) {
+      setError("Voice input is not supported in this browser.");
+      return;
+    }
+
+    setError(null);
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    recognitionRef.current.start();
+    setIsListening(true);
+  }
+
+  function playReplyAudio(audioWavBase64: string | null) {
+    if (!voiceEnabled || !audioWavBase64) return;
+    const audio = new Audio(`data:audio/wav;base64,${audioWavBase64}`);
+    audioRef.current?.pause();
+    audioRef.current = audio;
+    void audio.play();
   }
 
   async function handleSendMessage() {
@@ -98,6 +176,7 @@ export default function UserDashboard() {
     setInput("");
     setIsSending(true);
     setError(null);
+    setChatNotice(null);
 
     try {
       const analyze = await fetchJson<AnalyzeResponse>("/triage/analyze", {
@@ -113,10 +192,32 @@ export default function UserDashboard() {
         }),
       });
 
+      const chat = await fetchJson<ChatResponse>("/chat/respond", {
+        method: "POST",
+        body: JSON.stringify({
+          session_id: SESSION_ID,
+          user_id: USER_ID,
+          recent_messages: nextMessages.slice(-12).map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
+          prior_summary: priorSummary,
+          triage_context: {
+            severity: analyze.severity,
+            subtype: analyze.subtype,
+            emergency_flag: analyze.emergency_flag,
+            risk_score: analyze.risk_score,
+            confidence: analyze.confidence,
+            top_indicators: analyze.top_indicators,
+          },
+          include_audio: voiceEnabled,
+        }),
+      });
+
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: buildAssistantReply(analyze),
+        content: chat.reply,
         timestamp: new Date().toISOString(),
       };
 
@@ -133,10 +234,13 @@ export default function UserDashboard() {
       ];
 
       setAnalysis(analyze);
+      setModelLabel(chat.fallback_used ? "backup-support" : chat.model);
+      setChatNotice(chat.notice);
       setMessages((current) => [...current, assistantMessage]);
       setSessionHistory(nextHistory);
       await refreshPriorSummary(nextHistory);
       await refreshContactsAndHealth();
+      playReplyAudio(chat.audio_wav_base64);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to reach the triage backend.");
       setBackendOnline(false);
@@ -241,6 +345,9 @@ export default function UserDashboard() {
                   <span className="rounded-full border border-white/80 bg-white/78 px-4 py-2 text-sm text-slate-600 shadow-soft">
                     Session {SESSION_ID}
                   </span>
+                  <span className="rounded-full border border-white/80 bg-white/78 px-4 py-2 text-sm text-slate-600 shadow-soft">
+                    {chatNotice ? "Backup support active" : `Gemini • ${modelLabel}`}
+                  </span>
                 </div>
               </div>
 
@@ -262,6 +369,15 @@ export default function UserDashboard() {
                     </span>
                   )}
                 </div>
+
+                {chatNotice && (
+                  <div className="mx-5 mb-2 rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 md:mx-6">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{chatNotice}</span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="scroll-hidden flex-1 overflow-y-auto px-5 pb-5 md:px-6">
                   <div className="space-y-5">
@@ -315,19 +431,45 @@ export default function UserDashboard() {
                       className="w-full resize-none border-0 bg-transparent px-3 py-3 text-[15px] leading-7 text-slate-700 outline-none placeholder:text-slate-400"
                     />
                     <div className="flex flex-col gap-3 border-t border-line/50 px-3 pb-2 pt-3 md:flex-row md:items-center md:justify-between">
-                      <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">Live triage</span>
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">History-aware</span>
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">Safety routing</span>
                       </div>
-                      <button
-                        onClick={() => void handleSendMessage()}
-                        disabled={isSending || !input.trim()}
-                        className="inline-flex items-center justify-center gap-2 rounded-full bg-[#14182c] px-5 py-3 text-sm font-semibold text-white shadow-soft transition disabled:cursor-not-allowed disabled:opacity-45"
-                      >
-                        <SendHorizonal className="h-4 w-4" />
-                        Send
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={toggleListening}
+                          className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-soft transition ${
+                            isListening ? "bg-rose-500 text-white" : "bg-white text-slate-700"
+                          }`}
+                        >
+                          {isListening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                          {isListening ? "Stop mic" : "Voice"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setVoiceEnabled((current) => {
+                              const next = !current;
+                              if (!next) {
+                                audioRef.current?.pause();
+                              }
+                              return next;
+                            });
+                          }}
+                          className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-soft transition"
+                        >
+                          {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                          {voiceEnabled ? "Voice on" : "Voice off"}
+                        </button>
+                        <button
+                          onClick={() => void handleSendMessage()}
+                          disabled={isSending || !input.trim()}
+                          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#14182c] px-5 py-3 text-sm font-semibold text-white shadow-soft transition disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          <SendHorizonal className="h-4 w-4" />
+                          Send
+                        </button>
+                      </div>
                     </div>
                   </div>
 

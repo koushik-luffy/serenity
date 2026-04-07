@@ -24,9 +24,10 @@ class HierarchicalTriageModel(nn.Module):
         context_layers: int = 2,
         max_turns: int = 8,
         dropout: float = 0.1,
+        local_files_only: bool = False,
     ) -> None:
         super().__init__()
-        self.encoder = AutoModel.from_pretrained(encoder_name)
+        self.encoder = AutoModel.from_pretrained(encoder_name, local_files_only=local_files_only)
         hidden_size = int(self.encoder.config.hidden_size)
         self.max_turns = max_turns
 

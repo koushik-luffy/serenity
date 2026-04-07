@@ -30,6 +30,13 @@ HIGH_CRISIS_RULES: list[tuple[re.Pattern[str], RuleSignal]] = [
         RuleSignal("explicit suicidal intent", "high_crisis", "suicidal_ideation", False, 26),
     ),
     (
+        re.compile(
+            r"\b(better off without me|wish i could disappear|if i didn't wake up|if i don't wake up|running out of reasons to stay|don't see the point in waking up|want everything to stop forever)\b",
+            re.I,
+        ),
+        RuleSignal("indirect suicidal ideation", "high_crisis", "suicidal_ideation", False, 22),
+    ),
+    (
         re.compile(r"\b(cut myself|hurt myself|self harm|bleeding myself)\b", re.I),
         RuleSignal("self-harm language", "high_crisis", "self_harm", False, 22),
     ),
@@ -40,6 +47,20 @@ HIGH_CRISIS_RULES: list[tuple[re.Pattern[str], RuleSignal]] = [
     (
         re.compile(r"\b(he hit me|she hit me|being abused|domestic violence|someone is attacking me)\b", re.I),
         RuleSignal("violence or abuse danger", "high_crisis", "abuse_violence", True, 24),
+    ),
+    (
+        re.compile(
+            r"\b(kill him|kill her|kill them|kill someone|hurt someone|hurt him|hurt her|hurt them|kidnap someone|kidnap him|kidnap her|make them disappear)\b",
+            re.I,
+        ),
+        RuleSignal("threats of harm to others", "high_crisis", "abuse_violence", True, 28),
+    ),
+    (
+        re.compile(
+            r"\b(make him disappear|make her disappear|make someone disappear|might snap and hurt him|might snap and hurt her|might snap and hurt them|lose control and hurt someone|can't trust myself around him|can't trust myself around her|can't trust myself around them|visions of hurting him|visions of hurting her|visions of hurting them)\b",
+            re.I,
+        ),
+        RuleSignal("indirect threats of harm to others", "high_crisis", "abuse_violence", True, 24),
     ),
     (
         re.compile(r"\b(car crash|accident|broken bone|can't breathe|collapsed|unconscious)\b", re.I),
@@ -148,7 +169,13 @@ def apply_safe_fail(
         final_severity = SEVERITY_LABELS[min(SEVERITY_RANK[final_severity] + 1, len(SEVERITY_LABELS) - 1)]
         escalated = True
 
-    if rule_assessment.subtype_hint and final_subtype == "general_distress":
+    if rule_assessment.subtype_hint and (
+        final_subtype == "general_distress"
+        or (
+            rule_assessment.severity_floor == "high_crisis"
+            and final_subtype != rule_assessment.subtype_hint
+        )
+    ):
         final_subtype = rule_assessment.subtype_hint
         escalated = True
 
@@ -165,6 +192,6 @@ def compute_risk_score(
     score = SEVERITY_BASE_RISK[severity]
     score += rule_assessment.risk_boost
     score += 12 if emergency_flag else 0
-    score += 6 if subtype in {"suicidal_ideation", "self_harm", "substance_overdose", "accident_injury"} else 0
+    score += 6 if subtype in {"suicidal_ideation", "self_harm", "substance_overdose", "accident_injury", "abuse_violence"} else 0
     score += int((1 - confidence) * 10)
     return max(0.0, min(100.0, float(score)))

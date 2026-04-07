@@ -135,3 +135,40 @@ class SummaryRequest(BaseModel):
 
 class SummaryResponse(BaseModel):
     prior_summary: str
+
+
+class ChatContext(BaseModel):
+    severity: Literal["low", "medium", "high_crisis"]
+    subtype: Literal[
+        "suicidal_ideation",
+        "self_harm",
+        "panic_anxiety",
+        "depression_hopelessness",
+        "abuse_violence",
+        "substance_overdose",
+        "accident_injury",
+        "general_distress",
+    ]
+    emergency_flag: bool
+    risk_score: float = Field(ge=0, le=100)
+    confidence: float = Field(ge=0, le=1)
+    top_indicators: list[str] = Field(default_factory=list, max_length=6)
+
+
+class ChatRequest(BaseModel):
+    session_id: str
+    user_id: str | None = None
+    recent_messages: list[Message] = Field(min_length=1, max_length=20)
+    prior_summary: str | None = None
+    triage_context: ChatContext | None = None
+    include_audio: bool = False
+
+
+class ChatResponse(BaseModel):
+    session_id: str
+    user_id: str
+    reply: str
+    model: str
+    audio_wav_base64: str | None = None
+    fallback_used: bool = False
+    notice: str | None = None

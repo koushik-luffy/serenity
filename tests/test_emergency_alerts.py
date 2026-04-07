@@ -2,12 +2,14 @@ import unittest
 
 from fastapi.testclient import TestClient
 
+from triage_api.conversation import ConversationResult, ConversationServiceError
 from triage_api.main import create_app
 
 
 class EmergencyAlertApiTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.client = TestClient(create_app())
+        self.app = create_app()
+        self.client = TestClient(self.app)
 
     def test_can_store_and_fetch_emergency_contacts(self) -> None:
         response = self.client.post(
@@ -127,6 +129,59 @@ class EmergencyAlertApiTests(unittest.TestCase):
         queue_body = queue_response.json()
         self.assertEqual(queue_body["queue"][0]["session_id"], "session-action")
         self.assertEqual(queue_body["queue"][0]["user_id"], "user-action")
+
+    def test_chat_endpoint_returns_supportive_reply(self) -> None:
+        self.app.state.conversation_service.respond = lambda **_: ConversationResult(
+            reply="That sounds really heavy. I'm here with you, and I'd like to understand what made today feel especially difficult.",
+            model="gemini-2.5-flash",
+            audio_wav_base64=None,
+            fallback_used=False,
+            notice=None,
+        )
+        response = self.client.post(
+            "/chat/respond",
+            json={
+                "session_id": "chat-session",
+                "user_id": "chat-user",
+                "recent_messages": [
+                    {"role": "assistant", "content": "How are you feeling today?"},
+                    {"role": "user", "content": "I don't know, today just felt weird and heavy for no real reason."},
+                ],
+                "triage_context": {
+                    "severity": "medium",
+                    "subtype": "depression_hopelessness",
+                    "emergency_flag": False,
+                    "risk_score": 62,
+                    "confidence": 0.71,
+                    "top_indicators": ["hopelessness language"],
+                },
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["session_id"], "chat-session")
+        self.assertTrue(len(body["reply"]) > 20)
+        self.assertIn("model", body)
+        self.assertFalse(body["fallback_used"])
+
+    def test_chat_endpoint_returns_fallback_when_gemini_is_unavailable(self) -> None:
+        self.app.state.conversation_service.respond = lambda **_: (_ for _ in ()).throw(
+            ConversationServiceError(503, "GEMINI_API_KEY is not configured.")
+        )
+        response = self.client.post(
+            "/chat/respond",
+            json={
+                "session_id": "chat-session-missing-key",
+                "recent_messages": [
+                    {"role": "user", "content": "I had a strange day and I'm not sure why I feel so low."}
+                ],
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertTrue(body["fallback_used"])
+        self.assertEqual(body["model"], "backup-support")
+        self.assertIsNotNone(body["notice"])
 
 
 if __name__ == "__main__":

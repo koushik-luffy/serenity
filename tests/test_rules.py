@@ -58,6 +58,62 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(severity, "medium")
         self.assertTrue(escalated)
 
+    def test_harm_to_others_language_escalates_to_abuse_violence(self) -> None:
+        assessment = assess_rules(["[USER] I keep thinking I might kill someone tonight"], None)
+        severity, subtype, emergency, escalated = apply_safe_fail(
+            severity="low",
+            subtype="general_distress",
+            emergency_flag=False,
+            confidence=0.77,
+            rule_assessment=assessment,
+        )
+        self.assertEqual(severity, "high_crisis")
+        self.assertEqual(subtype, "abuse_violence")
+        self.assertTrue(emergency)
+        self.assertTrue(escalated)
+
+    def test_indirect_suicidal_language_escalates_to_high_crisis(self) -> None:
+        assessment = assess_rules(["[USER] Everyone would be better off without me if I disappeared"], None)
+        severity, subtype, emergency, escalated = apply_safe_fail(
+            severity="low",
+            subtype="general_distress",
+            emergency_flag=False,
+            confidence=0.81,
+            rule_assessment=assessment,
+        )
+        self.assertEqual(severity, "high_crisis")
+        self.assertEqual(subtype, "suicidal_ideation")
+        self.assertFalse(emergency)
+        self.assertTrue(escalated)
+
+    def test_indirect_harm_to_others_language_escalates_to_abuse_violence(self) -> None:
+        assessment = assess_rules(["[USER] I'm scared I might snap and hurt him if he comes back tonight"], None)
+        severity, subtype, emergency, escalated = apply_safe_fail(
+            severity="medium",
+            subtype="general_distress",
+            emergency_flag=False,
+            confidence=0.72,
+            rule_assessment=assessment,
+        )
+        self.assertEqual(severity, "high_crisis")
+        self.assertEqual(subtype, "abuse_violence")
+        self.assertTrue(emergency)
+        self.assertTrue(escalated)
+
+    def test_high_risk_rule_overrides_conflicting_neural_subtype(self) -> None:
+        assessment = assess_rules(["[USER] I keep thinking everyone would be better off without me tonight"], None)
+        severity, subtype, emergency, escalated = apply_safe_fail(
+            severity="high_crisis",
+            subtype="substance_overdose",
+            emergency_flag=True,
+            confidence=0.67,
+            rule_assessment=assessment,
+        )
+        self.assertEqual(severity, "high_crisis")
+        self.assertEqual(subtype, "suicidal_ideation")
+        self.assertTrue(emergency)
+        self.assertTrue(escalated)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,12 +1,22 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
 from .alerts import EmergencyAlertService
+from .conversation import (
+    ConversationService,
+    ConversationServiceError,
+    build_fallback_conversation_result,
+)
 from .schemas import (
     AnalyzeRequest,
     AnalyzeResponse,
+    ChatRequest,
+    ChatResponse,
     EmergencyContactsResponse,
     EmergencyContactsUpsertRequest,
     QueueActionRequest,
@@ -15,6 +25,8 @@ from .schemas import (
 )
 from .service import TriageService
 from .store import TriageStore
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Mental Health Triage API", version="0.2.0")
@@ -26,6 +38,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.state.service = TriageService()
+    app.state.conversation_service = ConversationService()
     app.state.store = TriageStore()
     app.state.alert_service = EmergencyAlertService(app.state.store)
 
@@ -63,6 +76,34 @@ def create_app() -> FastAPI:
         service: TriageService = http_request.app.state.service
         summary = service.summarize_history([session.model_dump() for session in request.sessions])
         return SummaryResponse(prior_summary=summary)
+
+    @app.post("/chat/respond", response_model=ChatResponse)
+    def chat_respond(request: ChatRequest, http_request: Request) -> ChatResponse:
+        conversation_service: ConversationService = http_request.app.state.conversation_service
+        user_id = request.user_id or request.session_id
+        triage_context = request.triage_context.model_dump() if request.triage_context else None
+        try:
+            result = conversation_service.respond(
+                recent_messages=[message.model_dump() for message in request.recent_messages],
+                triage_context=triage_context,
+                prior_summary=request.prior_summary,
+                include_audio=request.include_audio,
+            )
+        except ConversationServiceError as exc:
+            result = build_fallback_conversation_result(
+                recent_messages=[message.model_dump() for message in request.recent_messages],
+                triage_context=triage_context,
+                provider_message=str(exc),
+            )
+        return ChatResponse(
+            session_id=request.session_id,
+            user_id=user_id,
+            reply=result.reply,
+            model=result.model,
+            audio_wav_base64=result.audio_wav_base64,
+            fallback_used=result.fallback_used,
+            notice=result.notice,
+        )
 
     @app.post("/api/emergency-contacts", response_model=EmergencyContactsResponse)
     def upsert_emergency_contacts(

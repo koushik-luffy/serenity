@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import sys
 from pathlib import Path
 
 import torch
@@ -10,6 +11,10 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from torch.optim import AdamW
 from transformers import AutoTokenizer
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from triage_api.labels import SEVERITY_RANK, SUBTYPE_TO_INDEX
 from triage_api.model import HierarchicalTriageModel
@@ -98,7 +103,7 @@ def load_jsonl(path: Path) -> list[dict]:
 
 
 def train(args: argparse.Namespace) -> None:
-    tokenizer = AutoTokenizer.from_pretrained(args.encoder_name)
+    tokenizer = AutoTokenizer.from_pretrained(args.encoder_name, use_fast=False)
     records = load_jsonl(Path(args.data))
     dataset = TriageDataset(records, tokenizer)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_batch)
